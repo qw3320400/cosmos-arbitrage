@@ -5,6 +5,7 @@ import (
 	"cosmos-arbitrage/common"
 	"cosmos-arbitrage/config"
 	"cosmos-arbitrage/cosmos"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -119,6 +120,8 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 	}
 	poolSyncData = newPoolSyncData
 	common.Log(fmt.Sprintf("sync liquidity pools at height finish [%d]", blockResp.Block.Header.Height))
+	poolSyncDataByte, _ := json.Marshal(poolSyncData)
+	common.Log(string(poolSyncDataByte))
 	return response, nil
 }
 

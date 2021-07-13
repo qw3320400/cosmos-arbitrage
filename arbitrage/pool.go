@@ -87,6 +87,7 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 		Height:  blockResp.Block.Header.Height,
 		PoolMap: sync.Map{},
 	}
+	common.Log(fmt.Sprintf("test log %+v", liqResponse))
 	for _, pool := range liqResponse.Pools {
 		if len(pool.ReserveCoinDenoms) != 2 {
 			return nil, common.Errorf(nil, "ReserveCoinDenoms len error [%+v]", pool.ReserveCoinDenoms)

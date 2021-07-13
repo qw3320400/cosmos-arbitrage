@@ -87,7 +87,6 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 		Height:  blockResp.Block.Header.Height,
 		PoolMap: sync.Map{},
 	}
-	common.Log(fmt.Sprintf("test log %+v", liqResponse))
 	for _, pool := range liqResponse.Pools {
 		if len(pool.ReserveCoinDenoms) != 2 {
 			return nil, common.Errorf(nil, "ReserveCoinDenoms len error [%+v]", pool.ReserveCoinDenoms)
@@ -99,6 +98,7 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 			common.LogErr(fmt.Sprintf("AllBalances fail [%s] wait a second for next step", err))
 			return response, nil
 		}
+		common.Log(fmt.Sprintf("test log %+v", balResp))
 		denomMap := map[string]types.Int{}
 		for _, denom := range pool.ReserveCoinDenoms {
 			var found bool

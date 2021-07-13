@@ -65,7 +65,7 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 	if poolSyncData == nil {
 		poolSyncData = &PoolSyncData{
 			Height:  0,
-			PoolMap: sync.Map{},
+			PoolMap: SyncMap{},
 		}
 	}
 	blockResp, err := request.CosmosClient.TendermintClient.GetLatestBlock(ctx, &tmservice.GetLatestBlockRequest{})
@@ -85,7 +85,7 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 	}
 	newPoolSyncData := &PoolSyncData{
 		Height:  blockResp.Block.Header.Height,
-		PoolMap: sync.Map{},
+		PoolMap: SyncMap{},
 	}
 	for _, pool := range liqResponse.Pools {
 		if len(pool.ReserveCoinDenoms) != 2 {
@@ -98,7 +98,6 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 			common.LogErr(fmt.Sprintf("AllBalances fail [%s] wait a second for next step", err))
 			return response, nil
 		}
-		common.Log(fmt.Sprintf("test log %+v", balResp))
 		denomMap := map[string]types.Int{}
 		for _, denom := range pool.ReserveCoinDenoms {
 			var found bool
@@ -128,7 +127,20 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 
 type PoolSyncData struct {
 	Height  int64
-	PoolMap sync.Map
+	PoolMap SyncMap
+}
+
+type SyncMap struct {
+	sync.Map // map[uint64]*PoolData
+}
+
+func (m *SyncMap) MarshalJSON() ([]byte, error) {
+	tmpMap := make(map[uint64]*PoolData)
+	m.Range(func(k, v interface{}) bool {
+		tmpMap[k.(uint64)] = v.(*PoolData)
+		return true
+	})
+	return json.Marshal(tmpMap)
 }
 
 type PoolData struct {

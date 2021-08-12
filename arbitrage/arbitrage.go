@@ -73,7 +73,7 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 	}
 	var (
 		err       error
-		graphPool = []*graph.Pool{}
+		graphPool = []graph.Pool{}
 	)
 	// find circle
 	poolSyncData.PoolMap.Range(func(key interface{}, value interface{}) bool {
@@ -82,14 +82,7 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 			err = common.Errorf(nil, "value to PoolData fail [%+v: %+v]", key, value)
 			return false
 		}
-		tmp := &graph.Pool{
-			ID:     pool.ID,
-			Denoms: []string{},
-		}
-		for denom := range pool.DenomMap {
-			tmp.Denoms = append(tmp.Denoms, denom)
-		}
-		graphPool = append(graphPool, tmp)
+		graphPool = append(graphPool, pool)
 		return true
 	})
 	if err != nil {
@@ -99,34 +92,46 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 	// path
 	for _, path := range foundPath {
 		var (
-			rate         = types.NewDec(1)
-			tempDenom    = "uatom"
-			pathRatelist = []types.Dec{}
+			rate      = types.NewDec(1)
+			tempDenom = "uatom"
 		)
-		for _, pool := range path.Path {
-			poolDataI, ok := poolSyncData.PoolMap.Load(pool.ID)
+		for _, poolID := range path.Path {
+			poolDataI, ok := poolSyncData.PoolMap.Load(poolID)
 			if !ok {
-				panic(fmt.Sprintf("can not find [%d] in PoolMap fail [%+v]", pool.ID, poolSyncData.PoolMap))
+				panic(fmt.Sprintf("can not find [%d] in PoolMap fail [%+v]", poolID, poolSyncData.PoolMap))
 			}
 			poolData, ok := poolDataI.(*PoolData)
 			if !ok {
 				panic(fmt.Sprintf("can not convert [%+v] to PoolData", poolDataI))
 			}
-			if pool.Denoms[0] == tempDenom {
-				rate = rate.Mul(getRate(pool.Denoms[0], pool.Denoms[1], poolData.DenomMap))
-				tempDenom = pool.Denoms[1]
+			if poolData.DenomList[0] == tempDenom {
+				rate = rate.Mul(getRate(poolData.DenomList[0], poolData.DenomList[1], poolData.DenomMap))
+				tempDenom = poolData.DenomList[1]
 			} else {
-				rate = rate.Mul(getRate(pool.Denoms[1], pool.Denoms[0], poolData.DenomMap))
-				tempDenom = pool.Denoms[0]
+				rate = rate.Mul(getRate(poolData.DenomList[1], poolData.DenomList[0], poolData.DenomMap))
+				tempDenom = poolData.DenomList[0]
 			}
-			pathRatelist = append(pathRatelist, poolData.CurRate)
 		}
-		if rate.GT(types.NewDec(1)) {
-			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v] curRateList[%+v] rate [%s]", path.Path, pathRatelist, rate))
+		if rate.GT(rateDec) {
+			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v] rate [%s]", path.Path, rate))
+			calculatePriceAndVolumn(path.Path)
 		}
 	}
 }
 
 func getRate(from, to string, denomMap map[string]types.Int) types.Dec {
 	return types.NewDecFromInt(denomMap[to]).Quo(types.NewDecFromInt(denomMap[from]))
+}
+
+var (
+	rateStr = "1.1"
+	rateDec types.Dec
+)
+
+func init() {
+	var err error
+	rateDec, err = types.NewDecFromStr(rateStr)
+	if err != nil {
+		panic(common.Errorf(err, "error rate [%s]", rateStr))
+	}
 }

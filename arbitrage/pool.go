@@ -5,6 +5,7 @@ import (
 	"cosmos-arbitrage/common"
 	"cosmos-arbitrage/config"
 	"cosmos-arbitrage/cosmos"
+	"cosmos-arbitrage/graph"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -113,12 +114,10 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 			}
 		}
 		newPoolData := &PoolData{
-			ID:       pool.Id,
-			DenomMap: denomMap,
+			ID:        pool.Id,
+			DenomMap:  denomMap,
+			DenomList: pool.ReserveCoinDenoms,
 		}
-		X := denomMap[pool.ReserveCoinDenoms[0]].ToDec()
-		Y := denomMap[pool.ReserveCoinDenoms[1]].ToDec()
-		newPoolData.CurRate = X.Quo(Y)
 		newPoolSyncData.PoolMap.Store(pool.Id, newPoolData)
 	}
 	poolSyncData = newPoolSyncData
@@ -147,15 +146,31 @@ func (m *SyncMap) MarshalJSON() ([]byte, error) {
 }
 
 type PoolData struct {
-	ID       uint64
-	DenomMap map[string]types.Int
-	CurRate  types.Dec
+	ID        uint64
+	DenomMap  map[string]types.Int
+	DenomList []string
 }
 
-type DenomData struct {
-	Denom string
+func (p *PoolData) GetID() uint64 {
+	return p.ID
+}
+
+func (p *PoolData) GetFirstDenom() string {
+	if len(p.DenomList) != 2 {
+		panic(common.Errorf(nil, "error pool data [%+v]", p))
+	}
+	return p.DenomList[0]
+}
+
+func (p *PoolData) GetSecondDenom() string {
+	if len(p.DenomList) != 2 {
+		panic(common.Errorf(nil, "error pool data [%+v]", p))
+	}
+	return p.DenomList[1]
 }
 
 var (
+	_ graph.Pool = &PoolData{}
+
 	poolSyncData *PoolSyncData
 )

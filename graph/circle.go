@@ -1,41 +1,32 @@
 package graph
 
-import "fmt"
-
-type Pool struct {
-	ID     uint64
-	Denoms []string
+type Pool interface {
+	GetID() uint64
+	GetFirstDenom() string
+	GetSecondDenom() string
 }
-
-func (p *Pool) String() string {
-	if p == nil || len(p.Denoms) <= 0 {
-		return "pool empty or nil"
-	}
-	return "[" + fmt.Sprintf("%d", p.ID) + ":(" + p.Denoms[0] + "|" + p.Denoms[1] + ")]"
-}
-
 type Circle struct {
-	Path []*Pool
+	Path []uint64
 }
 
-func findPath(pools []*Pool, inDenom, outDenom string, maxHops int, path []*Pool, circles []*Circle) []*Circle {
+func findPath(pools []Pool, inDenom, outDenom string, maxHops int, path []Pool, circles []*Circle) []*Circle {
 	for i, pool := range pools {
-		if pool.Denoms[0] != inDenom && pool.Denoms[1] != inDenom {
+		if pool.GetFirstDenom() != inDenom && pool.GetSecondDenom() != inDenom {
 			continue
 		}
 		var tmpOutDenom string
-		if pool.Denoms[0] == inDenom {
-			tmpOutDenom = pool.Denoms[1]
+		if pool.GetFirstDenom() == inDenom {
+			tmpOutDenom = pool.GetSecondDenom()
 		} else {
-			tmpOutDenom = pool.Denoms[0]
+			tmpOutDenom = pool.GetFirstDenom()
 		}
-		pathCopy := make([]*Pool, len(path))
+		pathCopy := make([]Pool, len(path))
 		copy(pathCopy, path)
 		pathCopy = append(pathCopy, pool)
 		if tmpOutDenom == outDenom && len(pathCopy) > 2 {
-			circles = append(circles, &Circle{Path: pathCopy})
+			circles = append(circles, pathToCircle(pathCopy))
 		} else if maxHops > 1 && len(pools) > 1 {
-			excludePool := make([]*Pool, len(pools)-1)
+			excludePool := make([]Pool, len(pools)-1)
 			copy(excludePool, pools[:i])
 			copy(excludePool[i:], pools[i+1:])
 			circles = findPath(excludePool, tmpOutDenom, outDenom, maxHops-1, pathCopy, circles)
@@ -44,10 +35,20 @@ func findPath(pools []*Pool, inDenom, outDenom string, maxHops int, path []*Pool
 	return circles
 }
 
-func FindCircle(pools []*Pool, denom string, maxHops int) []*Circle {
+func pathToCircle(paths []Pool) *Circle {
+	circle := &Circle{
+		Path: []uint64{},
+	}
+	for _, path := range paths {
+		circle.Path = append(circle.Path, path.GetID())
+	}
+	return circle
+}
+
+func FindCircle(pools []Pool, denom string, maxHops int) []*Circle {
 	var (
 		circle = []*Circle{}
-		path   = []*Pool{}
+		path   = []Pool{}
 	)
 	return findPath(pools, denom, denom, maxHops, path, circle)
 }

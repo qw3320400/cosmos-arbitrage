@@ -116,6 +116,9 @@ func (p *poolSyncer) runSync(ctx context.Context, request *RunSyncRequest) (*Run
 			ID:       pool.Id,
 			DenomMap: denomMap,
 		}
+		X := denomMap[pool.ReserveCoinDenoms[0]].ToDec()
+		Y := denomMap[pool.ReserveCoinDenoms[1]].ToDec()
+		newPoolData.CurRate = X.Quo(Y)
 		newPoolSyncData.PoolMap.Store(pool.Id, newPoolData)
 	}
 	poolSyncData = newPoolSyncData
@@ -146,6 +149,7 @@ func (m *SyncMap) MarshalJSON() ([]byte, error) {
 type PoolData struct {
 	ID       uint64
 	DenomMap map[string]types.Int
+	CurRate  types.Dec
 }
 
 type DenomData struct {

@@ -99,8 +99,9 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 	// path
 	for _, path := range foundPath {
 		var (
-			rate      = types.NewDec(1)
-			tempDenom = "uatom"
+			rate         = types.NewDec(1)
+			tempDenom    = "uatom"
+			pathRatelist = []types.Dec{}
 		)
 		for _, pool := range path.Path {
 			poolDataI, ok := poolSyncData.PoolMap.Load(pool.ID)
@@ -118,9 +119,10 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 				rate = rate.Mul(getRate(pool.Denoms[1], pool.Denoms[0], poolData.DenomMap))
 				tempDenom = pool.Denoms[0]
 			}
+			pathRatelist = append(pathRatelist, poolData.CurRate)
 		}
 		if rate.GT(types.NewDec(1)) {
-			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v] rate [%s]", path.Path, rate))
+			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v] curRateList[%+v] rate [%s]", path.Path, pathRatelist, rate))
 		}
 	}
 }

@@ -120,7 +120,7 @@ func (a *arbitrage) processArbitrage(ctx context.Context, request *ProcessArbitr
 			}
 		}
 		if rate.GT(types.NewDec(1)) {
-			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v]", path.Path))
+			common.Log(fmt.Sprintf("!!!!!! found arbitrage circle [%+v] rate [%s]", path.Path, rate))
 		}
 	}
 }
